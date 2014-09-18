@@ -1,15 +1,18 @@
 /*
  * tokenizer.c
+ * Author: David DeSimone
  */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
-/*
- * Tokenizer type.  You need to fill in the type as part of your implementation.
- */
+
 
 const int MAX_SIZE = 1000000;
+
+/*
+ * Tokenizer type.  
+ */
 
 struct TokenizerT_ {
 
@@ -96,9 +99,80 @@ void TKDestroy(TokenizerT *tk) {
  * You need to fill in this function as part of your implementation.
  */
 
-char *TKGetNextToken(TokenizerT *tk) {
-  return tk->next;
+char *TKGetNextToken(TokenizerT *strtok) {
+  if(strtok->curr_pos >= strlen(strtok->toks)) {
+    return NULL;
+  }
+
+
+  char buffer[MAX_SIZE]; //CHANGE SIZE TO BE VARIABLE
+  int mark = strtok->curr_pos;
+  int i;
+  int total = 0;
+
+  if(mark == 0) {
+	i = 0;
+	char *tmp = strtok->toks;
+	char inspect = tmp[i];
+		while(isSep(strtok->seps, inspect)) {
+			mark++;
+			i++;
+			inspect = tmp[i];
+		} 
+	}
+  
+  for(i = mark; i < strtok->len; i++) {
+    char* tmp = strtok->toks;
+    char inspect = tmp[i];
+    if(!isSep(strtok->seps, inspect)) {
+      buffer[total] = strtok->toks[i];
+      mark++;
+      total++;
+    } else {
+	i++;
+	if(i < strtok->len) {
+		inspect = tmp[i];
+		while(isSep(strtok->seps, inspect)) {
+			mark++;
+			i++;
+			inspect = tmp[i];
+		} 
+	}
+      break;
+    }
+  }
+      /* Add terminating character to buffer */
+      buffer[total] = '\0';
+
+      /*Malloc space for the next token in the struct */
+      strtok->next = malloc(total);
+      memset(strtok->next, 0, total);
+
+      char *buff_ptr = &buffer[0];
+      //Use strncpy to prevent against buffer overflow
+      strncpy(strtok->next, buff_ptr, total);
+      
+
+      //Set the current position the number of steps we have progressed so far
+      strtok->curr_pos = mark + 1;
+
+      //Replace all escape characters with their hex. equivalents.  
+      //removeEscapes(strtok->next);
+
+  return strtok->next;
 }
+
+/* Function used to remove escape characters from Strings
+* Escape characters (such as \n) will be replaced with their ASCII hex codes in brackets 
+* ie "hello\nworld" becomes "hello[0x0a]world"
+*/
+void removeEscapes(char *str) {
+
+
+
+
+}
+
 
 /*
  * main will have two string arguments (in argv[1] and argv[2]).
@@ -113,16 +187,14 @@ int main(int argc, char **argv) {
   if(argc != 3) {
     printf("Error, invalid number of arguments!\n");
   }
- 
-  //TODO: Check argv1 and 2 for validity, take off quote marks. 
 
-  char* seps = argv[1];
-  char* toks = argv[2];
+  char *seps = argv[1];
+  char *toks = argv[2];
 
   TokenizerT* strtok = TKCreate(seps, toks);
 
-  while(hasNext(strtok)) {
-    char* next = TKGetNextToken(strtok);
+  char *next;
+  while((next = TKGetNextToken(strtok)) != NULL) {
     printf("%s\n", next);
     destroyNext(strtok);
   }
@@ -179,11 +251,11 @@ int hasNext(TokenizerT *strtok) {
       
 
       //Set the current position the number of steps we have progressed so far
-      strtok->curr_pos = mark + 1;
+      strtok->curr_pos = mark;
 
 
   return 1;
-}
+} 
 
 /* Function used to determine if a given character is a seperator character
  * Works in O(n) time. 
