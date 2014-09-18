@@ -1,6 +1,9 @@
 /*
  * tokenizer.c
  * Author: David DeSimone
+ * TODO: Finish adding character replacement
+ * TODO: Add replacement for characters like \k. Remember if it is not an escape character, replace instances of things like
+ * '\k' with just 'k'
  */
 #include <stdio.h>
 #include <string.h>
@@ -42,6 +45,9 @@ typedef struct TokenizerT_ TokenizerT;
  */
 
 int isSep(char* seps, char chr);
+void removeEscapes(char *str);
+void rplstr(char *str, int index_to_replace, char *sub);
+
 
 TokenizerT *TKCreate(char *separators, char *ts) {
 
@@ -157,19 +163,82 @@ char *TKGetNextToken(TokenizerT *strtok) {
       strtok->curr_pos = mark + 1;
 
       //Replace all escape characters with their hex. equivalents.  
-      //removeEscapes(strtok->next);
+      removeEscapes(strtok->next);
 
   return strtok->next;
 }
+
+
+char* isEscape(char chr) {
+	//Allocate memory for [0x0a]'\0'
+	char* result = malloc(7 * sizeof(char));
+	switch(chr) {
+	case '\n': result = "[0x0a]"; break;
+	case '\t': result = "[0x09]"; break;
+	case '\v': result = "[0x0b]"; break;
+	case '\b': result = "[0x08]"; break;
+	case '\r': result = "[0x0d]"; break;
+	case '\f': result = "[0x0c]"; break;
+	case '\a': result = "[0x07]"; break;
+	case '\\': result = "[0x5c]"; break;
+	case '\"': result = "[0x22]"; break;
+	default: free(result); return NULL;
+
+
+	}
+
+
+	return result;
+}
+
 
 /* Function used to remove escape characters from Strings
 * Escape characters (such as \n) will be replaced with their ASCII hex codes in brackets 
 * ie "hello\nworld" becomes "hello[0x0a]world"
 */
 void removeEscapes(char *str) {
+	int len = strlen(str);
+	int i;
+	
+	for(i = 0; i < len; i++) {
+		char inspect = str[i];
+		//isEscape will look at a character and see if it is an escape character. If it is, it will return
+		//the character's hex representation, i.e. \n to [0x0a]
+		char *replace = isEscape(inspect);
+
+		if(replace != NULL) {
+			rplstr(str, i, replace);
+		}
+	}
+
+}
 
 
+/*
+* Function used to replace a character at a given index in a given string, with another provided character 
+*/ 
+void rplstr(char *str, int index_to_replace, char *sub) {
+	
+	int len = strlen(str) + strlen(sub);
+	char buffer[len + 1];
+	int i,j,k;	
 
+	for(i = 0; i < index_to_replace; i++) {
+		buffer[i] = str[i];
+	}
+	for(j = index_to_replace, i = 0; j < index_to_replace + strlen(sub); j++, i++) {
+		buffer[j] = sub[i];
+	}
+	for(k = index_to_replace + strlen(sub); k < len; k++) {
+		buffer[k] = str[k - strlen(sub)];
+	}
+
+	buffer[len] = '\0';
+
+	char *strk = malloc(20 * sizeof(char));
+	strncpy(strk, buffer, len + 1);
+
+	printf("%s", strk);
 
 }
 
@@ -188,74 +257,27 @@ int main(int argc, char **argv) {
     printf("Error, invalid number of arguments!\n");
   }
 
-  char *seps = argv[1];
-  char *toks = argv[2];
+  //char *seps = argv[1];
+  //char *toks = argv[2];
+
+  char *seps = malloc(sizeof(char) * 2);
+  char *toks = malloc(sizeof(char) * 12);
+
+  seps = "\t";
+  toks = "hello\nworld";
 
   TokenizerT* strtok = TKCreate(seps, toks);
 
   char *next;
   while((next = TKGetNextToken(strtok)) != NULL) {
     printf("%s\n", next);
-    destroyNext(strtok);
+    //destroyNext(strtok);
   }
 
   TKDestroy(strtok);
   return 0;
 }
 
-
-/* Function used to determine if the tokenized string has another token not 
- *  yet read
- */
-
-int hasNext(TokenizerT *strtok) {
-
-  if(strtok->curr_pos >= strlen(strtok->toks)) {
-    return 0;
-  }
-
-
-  char buffer[MAX_SIZE]; //CHANGE SIZE TO BE VARIABLE
-  int mark = strtok->curr_pos;
-  int i;
-  int total = 0;
-  
-
-  for(i = mark; i < strtok->len; i++) {
-    char* tmp = strtok->toks;
-    char inspect = tmp[i];
-    if(!isSep(strtok->seps, inspect)) {
-      buffer[total] = strtok->toks[i];
-      mark++;
-      total++;
-    } else {
-      break;
-    }
-  }
-      if(mark == 0) {
-	strtok->has_next = 0;
-	mark++;
-	strtok->curr_pos = mark;
-	return 0;
-      }
-      /* Add terminating character to buffer */
-      buffer[total] = '\0';
-
-      /*Malloc space for the next token in the struct */
-      strtok->next = malloc(total);
-      memset(strtok->next, 0, total);
-
-      char *buff_ptr = &buffer[0];
-      //Use strncpy to prevent against buffer overflow
-      strncpy(strtok->next, buff_ptr, total);
-      
-
-      //Set the current position the number of steps we have progressed so far
-      strtok->curr_pos = mark;
-
-
-  return 1;
-} 
 
 /* Function used to determine if a given character is a seperator character
  * Works in O(n) time. 
