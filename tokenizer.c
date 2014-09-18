@@ -1,7 +1,7 @@
 /*
  * tokenizer.c
  * Author: David DeSimone
- * TODO: Finish adding character replacement
+ * TODO: Finish escape character replacement by assigning point from replacement functions to strtok->next; 
  * TODO: Add replacement for characters like \k. Remember if it is not an escape character, replace instances of things like
  * '\k' with just 'k'
  */
