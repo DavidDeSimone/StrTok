@@ -118,14 +118,18 @@ char *TKGetNextToken(TokenizerT *strtok) {
   char *replace_str;
 
   //Ignore the \ at the end of any string
-  if(strlen(strtok->toks) > 0 && strtok->toks[strlen(strtoks->toks)] == '\\') {
-    char *tmp = malloc(sizeof(char) * strlen(strtoks->toks));
+  char *toks = strtok->toks;
+
+  if(strlen(toks) > 0 && toks[strlen(toks) - 1] == '\\') {
+    char *tmp = malloc(sizeof(char) * strlen(strtok->toks));
     int cpy;
     
-    for(cpy = 0; cpy < strlen(strtoks->toks); cpy++) {
-      tmp[cpy] = strtoks->toks[cpy];
+    for(cpy = 0; cpy < strlen(strtok->toks) - 1; cpy++) {
+      tmp[cpy] = strtok->toks[cpy];
     }
     tmp[cpy] = '\0';
+
+    strtok->toks = tmp;
 
   }
 
@@ -276,14 +280,16 @@ int main(int argc, char **argv) {
     printf("Error, invalid number of arguments!\n");
   }
 
-  //char *seps = argv[1];
-  //char *toks = argv[2];
+  char *seps = argv[1];
+  char *toks = argv[2];
 
-  char *seps = malloc(sizeof(char) * 1);
-  char *toks = malloc(sizeof(char) * 3);
+  /* Debug Code for manual string entry 
+  // char *seps = malloc(sizeof(char) * 20);
+  // char *toks = malloc(sizeof(char) * 20);
 
-  seps = "";
-  toks = "\"";
+  // seps = "\b\le";
+  // toks = "ShE sells sEa shells by the sEa shorE\\";
+  */
 
   TokenizerT* strtok = TKCreate(seps, toks);
 
@@ -318,11 +324,4 @@ int isSep(char *seps, char chr) {
   return 0;
 }
 
-
-
-/* Function used to return the next token of the String to be tokenized
- * Returns NULL if no tokens are left. String is placed on the heap. 
- * All escape characters will be placed by bracketed ASCII equivalents
- * i.e. \n will be replaced with [0x0a]
- */
 
