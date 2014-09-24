@@ -45,8 +45,8 @@ typedef struct TokenizerT_ TokenizerT;
  */
 
 int isSep(char* seps, char chr);
-void removeEscapes(char *str);
-void rplstr(char *str, int index_to_replace, char *sub);
+char *removeEscapes(char *str);
+char *rplstr(char *str, int index_to_replace, char *sub);
 
 
 TokenizerT *TKCreate(char *separators, char *ts) {
@@ -115,6 +115,21 @@ char *TKGetNextToken(TokenizerT *strtok) {
   int mark = strtok->curr_pos;
   int i;
   int total = 0;
+  char *replace_str;
+
+  //Ignore the \ at the end of any string
+  if(strlen(strtok->toks) > 0 && strtok->toks[strlen(strtoks->toks)] == '\\') {
+    char *tmp = malloc(sizeof(char) * strlen(strtoks->toks));
+    int cpy;
+    
+    for(cpy = 0; cpy < strlen(strtoks->toks); cpy++) {
+      tmp[cpy] = strtoks->toks[cpy];
+    }
+    tmp[cpy] = '\0';
+
+  }
+
+
 
   if(mark == 0) {
 	i = 0;
@@ -163,7 +178,11 @@ char *TKGetNextToken(TokenizerT *strtok) {
       strtok->curr_pos = mark + 1;
 
       //Replace all escape characters with their hex. equivalents.  
-      removeEscapes(strtok->next);
+      replace_str = removeEscapes(strtok->next);
+      if(replace_str != NULL) {
+	strtok->next = replace_str;
+
+      }
 
   return strtok->next;
 }
@@ -196,10 +215,11 @@ char* isEscape(char chr) {
 * Escape characters (such as \n) will be replaced with their ASCII hex codes in brackets 
 * ie "hello\nworld" becomes "hello[0x0a]world"
 */
-void removeEscapes(char *str) {
+char *removeEscapes(char *str) {
 	int len = strlen(str);
 	int i;
-	
+	char *ret = NULL;
+
 	for(i = 0; i < len; i++) {
 		char inspect = str[i];
 		//isEscape will look at a character and see if it is an escape character. If it is, it will return
@@ -207,17 +227,17 @@ void removeEscapes(char *str) {
 		char *replace = isEscape(inspect);
 
 		if(replace != NULL) {
-			rplstr(str, i, replace);
+		  ret = rplstr(str, i, replace);
 		}
 	}
-
+	return ret;
 }
 
 
 /*
 * Function used to replace a character at a given index in a given string, with another provided character 
 */ 
-void rplstr(char *str, int index_to_replace, char *sub) {
+char *rplstr(char *str, int index_to_replace, char *sub) {
 	
 	int len = strlen(str) + strlen(sub);
 	char buffer[len + 1];
@@ -230,16 +250,15 @@ void rplstr(char *str, int index_to_replace, char *sub) {
 		buffer[j] = sub[i];
 	}
 	for(k = index_to_replace + strlen(sub); k < len; k++) {
-		buffer[k] = str[k - strlen(sub)];
+		buffer[k] = str[k - strlen(sub) + 1];
 	}
 
 	buffer[len] = '\0';
 
-	char *strk = malloc(20 * sizeof(char));
+	char *strk = malloc((len + 1) * sizeof(char));
 	strncpy(strk, buffer, len + 1);
 
-	printf("%s", strk);
-
+	return strk;
 }
 
 
@@ -260,11 +279,11 @@ int main(int argc, char **argv) {
   //char *seps = argv[1];
   //char *toks = argv[2];
 
-  char *seps = malloc(sizeof(char) * 2);
-  char *toks = malloc(sizeof(char) * 12);
+  char *seps = malloc(sizeof(char) * 1);
+  char *toks = malloc(sizeof(char) * 3);
 
-  seps = "\t";
-  toks = "hello\nworld";
+  seps = "";
+  toks = "\"";
 
   TokenizerT* strtok = TKCreate(seps, toks);
 
